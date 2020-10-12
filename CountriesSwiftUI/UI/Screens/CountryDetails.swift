@@ -28,7 +28,15 @@ struct CountryDetails: View {
     }
     
     var body: some View {
+      ZStack {
+        NavigationLink(
+          destination: BlaView(),
+          isActive: routingBinding.someNewView,
+          label: { EmptyView() }
+        )
+        
         content
+      }
             .navigationBarTitle(country.name(locale: locale))
             .onReceive(routingUpdate) { self.routingState = $0 }
             .onReceive(inspection.notice) { self.inspection.visit(self, $0) }
@@ -88,7 +96,9 @@ private extension CountryDetails {
     func loadedView(_ countryDetails: Country.Details) -> some View {
         List {
             country.flag.map { url in
+              Button(action: { injected.appState[\.routing.countryDetails.someNewView] = true }  , label: {
                 flagView(url: url)
+              })
             }
             basicInfoSectionView(countryDetails: countryDetails)
             if countryDetails.currencies.count > 0 {
@@ -165,6 +175,7 @@ private extension Country.Currency {
 extension CountryDetails {
     struct Routing: Equatable {
         var detailsSheet: Bool = false
+        var someNewView: Bool = false
     }
 }
 
@@ -187,3 +198,40 @@ struct CountryDetails_Previews: PreviewProvider {
     }
 }
 #endif
+
+struct BlaView: View {
+  @Environment(\.injected) private var injected: DIContainer
+  
+  @State private var routingState: Routing = .init()
+  private var routingBinding: Binding<Routing> {
+      $routingState.dispatched(to: injected.appState, \.routing.bla)
+  }
+  
+  var body: some View {
+    ZStack {
+      NavigationLink(
+        destination: Text("BLU"),
+        isActive: routingBinding.anotherView,
+        label: { EmptyView() }
+      )
+      
+      Button(action: { injected.appState[\.routing.bla.anotherView] = true }  , label: {
+        Text("Go to BLU")
+      })
+    }
+    .onReceive(routingUpdate) { self.routingState = $0 }
+  }
+}
+
+extension BlaView {
+    struct Routing: Equatable {
+        var anotherView: Bool = false
+    }
+}
+
+private extension BlaView {
+  
+    var routingUpdate: AnyPublisher<Routing, Never> {
+        injected.appState.updates(for: \.routing.bla)
+    }
+}
